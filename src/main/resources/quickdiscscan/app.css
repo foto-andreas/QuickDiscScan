@@ -1,0 +1,42 @@
+.app-root {
+    -fx-font-family: system;
+    -fx-font-size: 13px;
+    -fx-background-color: -fx-control-inner-background;
+}
+
+.title {
+    -fx-font-size: 22px;
+    -fx-font-weight: bold;
+}
+
+.subtitle {
+    -fx-opacity: 0.72;
+}
+
+.primary-button,
+.progress-label {
+    -fx-font-weight: bold;
+}
+
+.breadcrumb {
+    -fx-font-weight: bold;
+    -fx-text-overrun: leading-ellipsis;
+}
+
+.delete-zone {
+    -fx-border-color: -fx-box-border;
+    -fx-border-style: segments(5, 5);
+    -fx-border-radius: 7px;
+    -fx-background-radius: 7px;
+    -fx-opacity: 0.72;
+}
+
+.delete-zone-active {
+    -fx-border-color: #d44;
+    -fx-background-color: rgba(220, 68, 68, 0.13);
+    -fx-opacity: 1;
+}
+
+.chart {
+    -fx-background-color: derive(-fx-control-inner-background, -3%);
+}
