@@ -1,4 +1,4 @@
-package quickdiscscan;
+package de.schrell.quickdiskscan;
 
 import java.io.IOException;
 import java.io.RandomAccessFile;
@@ -15,7 +15,7 @@ import java.util.concurrent.atomic.AtomicReference;
 
 public final class DiskScannerTest {
     public static void main(String[] args) throws Exception {
-        Path root = Files.createTempDirectory("quickdiscscan-test-");
+        Path root = Files.createTempDirectory("quickdiskscan-test-");
         try {
             Path alphaPath = root.resolve("alpha.bin");
             Files.write(alphaPath, new byte[4_097]);

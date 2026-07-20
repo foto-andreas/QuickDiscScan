@@ -1,4 +1,4 @@
-package quickdiscscan;
+package de.schrell.quickdiskscan;
 
 import java.io.IOException;
 import java.io.InputStream;
@@ -61,21 +61,21 @@ final class NativeDiskMetrics {
 
     @SuppressWarnings("restricted")
     private static boolean loadNativeLibrary() {
-        String mappedName = System.mapLibraryName("quickdiscscanmetrics");
+        String mappedName = System.mapLibraryName("quickdiskscanmetrics");
         try {
-            System.loadLibrary("quickdiscscanmetrics");
+            System.loadLibrary("quickdiskscanmetrics");
             return true;
         } catch (UnsatisfiedLinkError ignored) {
             // Packaged applications load the helper copied into their resources.
         }
 
         try (InputStream source = NativeDiskMetrics.class.getResourceAsStream(
-                "/quickdiscscan/native/" + mappedName)) {
+                "/de/schrell/quickdiskscan/native/" + mappedName)) {
             if (source == null) {
                 return false;
             }
             String suffix = mappedName.substring(mappedName.lastIndexOf('.'));
-            Path library = Files.createTempFile("quickdiscscanmetrics-", suffix);
+            Path library = Files.createTempFile("quickdiskscanmetrics-", suffix);
             Files.copy(source, library, StandardCopyOption.REPLACE_EXISTING);
             library.toFile().deleteOnExit();
             System.load(library.toAbsolutePath().toString());

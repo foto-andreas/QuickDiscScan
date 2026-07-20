@@ -1,4 +1,4 @@
-package quickdiscscan;
+package de.schrell.quickdiskscan;
 
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
@@ -14,7 +14,7 @@ import java.util.List;
 import java.util.Locale;
 import java.util.Set;
 
-import static quickdiscscan.I18n.text;
+import static de.schrell.quickdiskscan.I18n.text;
 
 final class VolumeDiscovery {
     private static final Set<String> LINUX_PSEUDO_FILE_SYSTEMS = Set.of(

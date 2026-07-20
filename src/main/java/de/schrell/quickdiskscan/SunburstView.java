@@ -1,4 +1,4 @@
-package quickdiscscan;
+package de.schrell.quickdiskscan;
 
 import javafx.geometry.VPos;
 import javafx.scene.Cursor;
@@ -15,7 +15,7 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.function.Consumer;
 
-import static quickdiscscan.I18n.text;
+import static de.schrell.quickdiskscan.I18n.text;
 
 final class SunburstView extends Region {
     private static final Color[] PALETTE = {

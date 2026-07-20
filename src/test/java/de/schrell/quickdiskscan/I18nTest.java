@@ -1,4 +1,4 @@
-package quickdiscscan;
+package de.schrell.quickdiskscan;
 
 public final class I18nTest {
     public static void main(String[] args) {

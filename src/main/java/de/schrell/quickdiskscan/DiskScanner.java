@@ -1,4 +1,4 @@
-package quickdiscscan;
+package de.schrell.quickdiskscan;
 
 import java.io.IOException;
 import java.nio.file.DirectoryStream;

@@ -1,4 +1,4 @@
-package quickdiscscan;
+package de.schrell.quickdiskscan;
 
 import javafx.animation.KeyFrame;
 import javafx.animation.Timeline;
@@ -63,16 +63,16 @@ import java.util.concurrent.CancellationException;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.prefs.Preferences;
 
-import static quickdiscscan.I18n.text;
+import static de.schrell.quickdiskscan.I18n.text;
 
-public final class QuickDiscScanApp extends Application {
-    private static final String DRAG_DELETE = "application/x-quickdiscscan-delete";
+public final class QuickDiskScanApp extends Application {
+    private static final String DRAG_DELETE = "application/x-quickdiskscan-delete";
     private static final NumberFormat NUMBER = NumberFormat.getIntegerInstance(Locale.getDefault());
     private static final String PREF_PATH = "scanPath";
     private static final String PREF_PARALLELISM = "parallelism";
     private static final String PREF_SIZE_BASIS = "sizeBasis";
 
-    private final Preferences preferences = Preferences.userNodeForPackage(QuickDiscScanApp.class);
+    private final Preferences preferences = Preferences.userNodeForPackage(QuickDiskScanApp.class);
     private final ComboBox<VolumeDiscovery.Volume> volumeBox = new ComboBox<>();
     private final TextField pathField = new TextField();
     private final Button chooseButton = new Button(text("Auswählen …", "Choose …"));
@@ -114,13 +114,13 @@ public final class QuickDiscScanApp extends Application {
     private boolean busy;
     private boolean deleting;
 
-    public QuickDiscScanApp() {}
+    public QuickDiskScanApp() {}
 
     @Override
     public void start(Stage primaryStage) {
         stage = primaryStage;
-        stage.setTitle("QuickDiscScan");
-        try (InputStream icon = QuickDiscScanApp.class.getResourceAsStream("/quickdiscscan/icon.png")) {
+        stage.setTitle("QuickDiskScan");
+        try (InputStream icon = QuickDiskScanApp.class.getResourceAsStream("/de/schrell/quickdiskscan/icon.png")) {
             if (icon != null) {
                 stage.getIcons().add(new Image(icon));
             }
@@ -136,7 +136,7 @@ public final class QuickDiscScanApp extends Application {
         root.setBottom(createFooter());
 
         Scene scene = new Scene(root, 1160, 760);
-        var stylesheet = QuickDiscScanApp.class.getResource("/quickdiscscan/app.css");
+        var stylesheet = QuickDiskScanApp.class.getResource("/de/schrell/quickdiskscan/app.css");
         if (stylesheet != null) {
             scene.getStylesheets().add(stylesheet.toExternalForm());
         }

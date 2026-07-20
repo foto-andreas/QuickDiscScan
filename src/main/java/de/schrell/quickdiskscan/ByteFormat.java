@@ -1,4 +1,4 @@
-package quickdiscscan;
+package de.schrell.quickdiskscan;
 
 import java.text.NumberFormat;
 import java.util.Locale;

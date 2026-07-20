@@ -1,8 +1,8 @@
-module quickdiscscan {
+module de.schrell.quickdiskscan {
     requires java.desktop;
     requires java.prefs;
     requires javafx.controls;
     requires transitive javafx.graphics;
 
-    exports quickdiscscan;
+    exports de.schrell.quickdiskscan;
 }

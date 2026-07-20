@@ -28,7 +28,7 @@ static wchar_t *extended_path(const jchar *path, jsize length) {
     return result;
 }
 
-JNIEXPORT jlongArray JNICALL Java_quickdiscscan_NativeDiskMetrics_read0(
+JNIEXPORT jlongArray JNICALL Java_de_schrell_quickdiskscan_NativeDiskMetrics_read0(
         JNIEnv *env, jclass clazz, jstring java_path) {
     (void) clazz;
     const jchar *chars = (*env)->GetStringChars(env, java_path, NULL);
@@ -117,7 +117,7 @@ JNIEXPORT jlongArray JNICALL Java_quickdiscscan_NativeDiskMetrics_read0(
 #else
 #include <sys/stat.h>
 
-JNIEXPORT jlongArray JNICALL Java_quickdiscscan_NativeDiskMetrics_read0(
+JNIEXPORT jlongArray JNICALL Java_de_schrell_quickdiskscan_NativeDiskMetrics_read0(
         JNIEnv *env, jclass clazz, jstring java_path) {
     (void) clazz;
     const char *path = (*env)->GetStringUTFChars(env, java_path, NULL);

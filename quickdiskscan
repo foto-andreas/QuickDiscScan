@@ -1,0 +1,16 @@
+#!/usr/bin/env bash
+
+set -euo pipefail
+
+project_dir=$(cd -- "$(dirname -- "$0")" && pwd -P)
+case $(uname -s) in
+    Darwin) app=$project_dir/dist/QuickDiskScan.app/Contents/MacOS/QuickDiskScan ;;
+    Linux) app=$project_dir/dist/QuickDiskScan/bin/QuickDiskScan ;;
+    *) printf 'Unter Windows bitte dist\\QuickDiskScan\\QuickDiskScan.exe starten.\n' >&2; exit 1 ;;
+esac
+
+if [[ ! -x $app ]]; then
+    "$project_dir/build.sh"
+fi
+
+exec "$app" "$@"

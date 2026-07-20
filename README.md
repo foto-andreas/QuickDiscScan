@@ -1,8 +1,8 @@
-# QuickDiscScan
+# QuickDiskScan
 
-<img src="src/main/resources/quickdiscscan/icon.png" alt="QuickDiscScan-Logo" width="180">
+<img src="src/main/resources/de/schrell/quickdiskscan/icon.png" alt="QuickDiskScan-Logo" width="180">
 
-QuickDiscScan ist eine native JavaFX-Anwendung, die sehr schnell sichtbar macht, wo Speicherplatz
+QuickDiskScan ist eine native JavaFX-Anwendung, die sehr schnell sichtbar macht, wo Speicherplatz
 belegt wird. Bedienung und technische Grundstruktur lehnen sich an das Parallelprojekt QuickDiff an;
 Sunburst, Volume-Auswahl, Navigation und Dateiaktionen decken den Arbeitsablauf von SQDisk ab.
 
@@ -52,21 +52,21 @@ macOS/Linux:
 
 ```bash
 ./build.sh
-./quickdiscscan
+./quickdiskscan
 # oder direkt einen Pfad scannen
-./quickdiscscan /pfad/zum/verzeichnis
+./quickdiskscan /pfad/zum/verzeichnis
 ```
 
 Unter Windows in einer zur JDK-Architektur passenden „Native Tools Command Prompt for VS“:
 
 ```powershell
 .\build.ps1
-.\dist\QuickDiscScan\QuickDiscScan.exe
+.\dist\QuickDiskScan\QuickDiskScan.exe
 ```
 
 `JAVAFX_HOME` kann auf das JavaFX-SDK zeigen. Alternativ verwenden die Skripte vorhandene
 JavaFX-25-Artefakte aus dem lokalen Gradle-Cache. Das Ergebnis ist jeweils ein selbständiges
-App-Image unter `dist/QuickDiscScan` beziehungsweise `dist/QuickDiscScan.app`.
+App-Image unter `dist/QuickDiskScan` beziehungsweise `dist/QuickDiskScan.app`.
 
 ## Sicherheit
 
