@@ -247,7 +247,7 @@ public final class QuickDiskScanApp extends Application {
         actions.setAlignment(Pos.CENTER_RIGHT);
         VBox tablePane = new VBox(8, tableStack, actions);
         VBox.setVgrow(tableStack, Priority.ALWAYS);
-        tablePane.setPadding(new Insets(0, 0, 0, 10));
+        tablePane.setPadding(new Insets(0, 0, 10, 10));
 
         SplitPane splitPane = new SplitPane(chartPane, tablePane);
         splitPane.setDividerPositions(0.57);
@@ -319,8 +319,10 @@ public final class QuickDiskScanApp extends Application {
         MenuItem reveal = new MenuItem(text("Im Dateimanager zeigen", "Reveal in file manager"));
         reveal.setOnAction(event -> reveal(table.getSelectionModel().getSelectedItem()));
         MenuItem delete = new MenuItem(text("Löschen …", "Delete …"));
-        delete.setOnAction(event -> confirmDelete(
-                new ArrayList<>(table.getSelectionModel().getSelectedItems())));
+        delete.setOnAction(event -> {
+            List<DiskScanner.ScanNode> selection = List.copyOf(table.getSelectionModel().getSelectedItems());
+            Platform.runLater(() -> confirmDelete(selection));
+        });
         ContextMenu menu = new ContextMenu(reveal, delete);
         row.emptyProperty().addListener((observable, wasEmpty, isEmpty) -> row.setContextMenu(isEmpty ? null : menu));
         row.addEventFilter(ContextMenuEvent.CONTEXT_MENU_REQUESTED, event -> {
