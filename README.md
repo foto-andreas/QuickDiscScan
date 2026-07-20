@@ -16,8 +16,7 @@ Sunburst, Volume-Auswahl, Navigation und Dateiaktionen decken den Arbeitsablauf 
 - Offline-/Cloud-Platzhalter erkennen, ohne deren Dateiinhalt zu lesen
 - nicht in eingehängte Fremd-Volumes oder symbolische Verzeichnislinks hineinlaufen
 - Dateien und Ordner im System-Dateimanager anzeigen
-- mehrere Einträge auswählen und nach Bestätigung per Button, Kontextmenü, Entf-Taste oder
-  Drag-and-drop in die Löschzone entfernen
+- mehrere Einträge auswählen und nach Bestätigung per Button, Kontextmenü oder Entf-Taste entfernen
 - lokale und externe Volumes unter Windows, Linux und macOS erkennen
 - deutsche oder englische Oberfläche automatisch anhand der Systemsprache verwenden
 

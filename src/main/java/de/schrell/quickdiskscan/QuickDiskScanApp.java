@@ -20,6 +20,7 @@ import javafx.scene.control.ContextMenu;
 import javafx.scene.control.Label;
 import javafx.scene.control.MenuItem;
 import javafx.scene.control.ProgressBar;
+import javafx.scene.control.ProgressIndicator;
 import javafx.scene.control.SelectionMode;
 import javafx.scene.control.Spinner;
 import javafx.scene.control.SplitPane;
@@ -31,9 +32,8 @@ import javafx.scene.control.TextField;
 import javafx.scene.control.ToggleButton;
 import javafx.scene.control.ToggleGroup;
 import javafx.scene.control.Tooltip;
-import javafx.scene.input.ClipboardContent;
+import javafx.scene.input.ContextMenuEvent;
 import javafx.scene.input.KeyCode;
-import javafx.scene.input.TransferMode;
 import javafx.scene.image.Image;
 import javafx.scene.layout.BorderPane;
 import javafx.scene.layout.ColumnConstraints;
@@ -47,6 +47,7 @@ import javafx.stage.DirectoryChooser;
 import javafx.stage.Stage;
 import javafx.util.Duration;
 
+import java.awt.Desktop;
 import java.io.IOException;
 import java.io.InputStream;
 import java.nio.file.FileVisitResult;
@@ -66,7 +67,6 @@ import java.util.prefs.Preferences;
 import static de.schrell.quickdiskscan.I18n.text;
 
 public final class QuickDiskScanApp extends Application {
-    private static final String DRAG_DELETE = "application/x-quickdiskscan-delete";
     private static final NumberFormat NUMBER = NumberFormat.getIntegerInstance(Locale.getDefault());
     private static final String PREF_PATH = "scanPath";
     private static final String PREF_PARALLELISM = "parallelism";
@@ -94,8 +94,7 @@ public final class QuickDiskScanApp extends Application {
     private final TableColumn<DiskScanner.ScanNode, Long> shareColumn = new TableColumn<>(text("Anteil", "Share"));
     private final Button revealButton = new Button(text("Im Dateimanager zeigen", "Reveal in file manager"));
     private final Button deleteButton = new Button(text("Löschen …", "Delete …"));
-    private final Label deleteZone = new Label(text("Auswahl hierher ziehen, um sie zu löschen",
-            "Drag selection here to delete"));
+    private final ProgressIndicator deleteProgress = new ProgressIndicator();
     private final ProgressBar progressBar = new ProgressBar();
     private final Label progressLabel = new Label(text("Bereit", "Ready"));
     private final Label statisticsLabel = new Label(text("Noch kein Scan ausgeführt.", "No scan has run yet."));
@@ -241,14 +240,13 @@ public final class QuickDiskScanApp extends Application {
         chartPane.setPadding(new Insets(0, 10, 0, 0));
 
         configureTable();
+        deleteProgress.setMaxSize(48, 48);
+        deleteProgress.setVisible(false);
+        StackPane tableStack = new StackPane(table, deleteProgress);
         HBox actions = new HBox(8, revealButton, deleteButton);
         actions.setAlignment(Pos.CENTER_RIGHT);
-        deleteZone.setAlignment(Pos.CENTER);
-        deleteZone.setMaxWidth(Double.MAX_VALUE);
-        deleteZone.setMinHeight(48);
-        deleteZone.getStyleClass().add("delete-zone");
-        VBox tablePane = new VBox(8, table, actions, deleteZone);
-        VBox.setVgrow(table, Priority.ALWAYS);
+        VBox tablePane = new VBox(8, tableStack, actions);
+        VBox.setVgrow(tableStack, Priority.ALWAYS);
         tablePane.setPadding(new Insets(0, 0, 0, 10));
 
         SplitPane splitPane = new SplitPane(chartPane, tablePane);
@@ -289,6 +287,7 @@ public final class QuickDiskScanApp extends Application {
                 setText(empty ? "" : status);
                 setStyle(!empty && status != null && status.contains("Offline")
                         ? "-fx-text-fill: #d44; -fx-font-weight: bold;" : "");
+                setAlignment(Pos.CENTER);
             }
         });
 
@@ -318,11 +317,17 @@ public final class QuickDiskScanApp extends Application {
     private TableRow<DiskScanner.ScanNode> createRow() {
         TableRow<DiskScanner.ScanNode> row = new TableRow<>();
         MenuItem reveal = new MenuItem(text("Im Dateimanager zeigen", "Reveal in file manager"));
-        reveal.setOnAction(event -> reveal(row.getItem()));
+        reveal.setOnAction(event -> reveal(table.getSelectionModel().getSelectedItem()));
         MenuItem delete = new MenuItem(text("Löschen …", "Delete …"));
-        delete.setOnAction(event -> confirmDelete(List.of(row.getItem())));
+        delete.setOnAction(event -> confirmDelete(
+                new ArrayList<>(table.getSelectionModel().getSelectedItems())));
         ContextMenu menu = new ContextMenu(reveal, delete);
         row.emptyProperty().addListener((observable, wasEmpty, isEmpty) -> row.setContextMenu(isEmpty ? null : menu));
+        row.addEventFilter(ContextMenuEvent.CONTEXT_MENU_REQUESTED, event -> {
+            if (!row.isEmpty() && !row.isSelected()) {
+                table.getSelectionModel().clearAndSelect(row.getIndex());
+            }
+        });
         row.setOnMouseClicked(event -> {
             if (event.getClickCount() == 2 && !row.isEmpty()) {
                 DiskScanner.ScanNode node = row.getItem();
@@ -332,19 +337,6 @@ public final class QuickDiskScanApp extends Application {
                     reveal(node);
                 }
             }
-        });
-        row.setOnDragDetected(event -> {
-            if (row.isEmpty() || busy || deleting) {
-                return;
-            }
-            if (!row.isSelected()) {
-                table.getSelectionModel().clearAndSelect(row.getIndex());
-            }
-            var dragboard = row.startDragAndDrop(TransferMode.MOVE);
-            ClipboardContent content = new ClipboardContent();
-            content.putString(DRAG_DELETE);
-            dragboard.setContent(content);
-            event.consume();
         });
         return row;
     }
@@ -379,25 +371,6 @@ public final class QuickDiskScanApp extends Application {
                 pathField.setText(selected.path().toString());
                 updateVolumeUsage(selected);
             }
-        });
-
-        deleteZone.setOnDragOver(event -> {
-            if (event.getDragboard().hasString() && DRAG_DELETE.equals(event.getDragboard().getString())) {
-                event.acceptTransferModes(TransferMode.MOVE);
-                deleteZone.getStyleClass().add("delete-zone-active");
-            }
-            event.consume();
-        });
-        deleteZone.setOnDragExited(event -> deleteZone.getStyleClass().remove("delete-zone-active"));
-        deleteZone.setOnDragDropped(event -> {
-            deleteZone.getStyleClass().remove("delete-zone-active");
-            boolean accepted = event.getDragboard().hasString()
-                    && DRAG_DELETE.equals(event.getDragboard().getString());
-            event.setDropCompleted(accepted);
-            if (accepted) {
-                confirmDelete(new ArrayList<>(table.getSelectionModel().getSelectedItems()));
-            }
-            event.consume();
         });
     }
 
@@ -572,7 +545,7 @@ public final class QuickDiskScanApp extends Application {
             if (force || snapshot.entries() != lastDisplayedEntries) {
                 updateVisibleNodes();
                 lastDisplayedEntries = snapshot.entries();
-            } else {
+            } else if (busy) {
                 table.refresh();
             }
         }
@@ -634,6 +607,7 @@ public final class QuickDiskScanApp extends Application {
         parallelSpinner.setDisable(busy || deleting);
         progressBar.setVisible(busy);
         progressBar.setManaged(busy);
+        deleteProgress.setVisible(deleting);
         table.setDisable(deleting);
         updateActionButtons();
     }
@@ -645,14 +619,25 @@ public final class QuickDiskScanApp extends Application {
         Path path = node.path();
         String os = System.getProperty("os.name", "").toLowerCase(Locale.ROOT);
         try {
+            if (Desktop.isDesktopSupported()) {
+                Desktop desktop = Desktop.getDesktop();
+                if (desktop.isSupported(Desktop.Action.BROWSE_FILE_DIR)) {
+                    try {
+                        desktop.browseFileDirectory(path.toFile());
+                        return;
+                    } catch (IllegalArgumentException | UnsupportedOperationException | SecurityException ignored) {
+                        // Fall back to the platform command below.
+                    }
+                }
+            }
             if (os.contains("mac")) {
                 new ProcessBuilder("open", "-R", path.toString()).start();
             } else if (os.contains("win")) {
-                new ProcessBuilder("explorer", "/select," + path).start();
+                new ProcessBuilder("explorer.exe", "/select," + path).start();
             } else {
                 new ProcessBuilder("xdg-open", node.directory() ? path.toString() : path.getParent().toString()).start();
             }
-        } catch (IOException exception) {
+        } catch (IOException | IllegalArgumentException | UnsupportedOperationException | SecurityException exception) {
             showError(text("Dateimanager konnte nicht geöffnet werden", "Could not open file manager"),
                     exception.getMessage());
         }
