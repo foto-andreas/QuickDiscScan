@@ -115,9 +115,9 @@ if ($LASTEXITCODE -ne 0) { throw "Test-Kompilierung fehlgeschlagen." }
 $TestPath = (Join-Path $BuildDir "classes") + ";" + (Join-Path $BuildDir "test-classes")
 & (Join-Path $JavaHome "bin\java.exe") --enable-native-access=ALL-UNNAMED -ea -cp $TestPath de.schrell.quickdiskscan.DiskScannerTest
 if ($LASTEXITCODE -ne 0) { throw "Tests fehlgeschlagen." }
-& (Join-Path $JavaHome "bin\java.exe") -Duser.language=de -cp $TestPath de.schrell.quickdiskscan.I18nTest Deutsch
+& (Join-Path $JavaHome "bin\java.exe") "-Duser.language=de" -cp $TestPath de.schrell.quickdiskscan.I18nTest Deutsch
 if ($LASTEXITCODE -ne 0) { throw "Deutscher UI-Test fehlgeschlagen." }
-& (Join-Path $JavaHome "bin\java.exe") -Duser.language=en -cp $TestPath de.schrell.quickdiskscan.I18nTest English
+& (Join-Path $JavaHome "bin\java.exe") "-Duser.language=en" -cp $TestPath de.schrell.quickdiskscan.I18nTest English
 if ($LASTEXITCODE -ne 0) { throw "Englischer UI-Test fehlgeschlagen." }
 
 $Jar = Join-Path $BuildDir "package\quickdiskscan.jar"
@@ -129,7 +129,7 @@ if (Test-Path (Join-Path $JavaHome "jmods")) {
 }
 & (Join-Path $JavaHome "bin\jpackage.exe") --type app-image --name QuickDiskScan --dest $DistDir `
     --module-path $ModulePath --module de.schrell.quickdiskscan/de.schrell.quickdiskscan.QuickDiskScanApp `
-    --java-options -Dfile.encoding=UTF-8 --java-options --enable-native-access=javafx.graphics,de.schrell.quickdiskscan `
+    --java-options "-Dfile.encoding=UTF-8" --java-options "--enable-native-access=javafx.graphics,de.schrell.quickdiskscan" `
     --app-version 1.0.0 --icon (Join-Path $ProjectDir "src\main\packaging\QuickDiskScan.ico")
 if ($LASTEXITCODE -ne 0) { throw "Packaging fehlgeschlagen." }
 Write-Host "Erstellt: $(Join-Path $DistDir 'QuickDiskScan')"
