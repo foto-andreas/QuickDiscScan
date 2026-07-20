@@ -39,10 +39,11 @@ foreach ($Module in @("javafx-base", "javafx-graphics", "javafx-controls")) {
 }
 
 function Import-VisualCppEnvironment {
-    $JavaSettings = & (Join-Path $JavaHome "bin\java.exe") -XshowSettings:properties -version 2>&1
-    $ArchitectureLine = $JavaSettings | Select-String '^\s*os\.arch\s*=' | Select-Object -First 1
-    if (-not $ArchitectureLine) { return $false }
-    $JavaArchitecture = ($ArchitectureLine.Line -split '=', 2)[1].Trim()
+    $JavaExe = [IO.Path]::Combine($JavaHome, "bin", "java.exe")
+    $JavaCommand = '"{0}" -XshowSettings:properties -version 2>&1' -f $JavaExe
+    $JavaSettings = & $env:ComSpec /d /s /c $JavaCommand | Out-String
+    if ($JavaSettings -notmatch '(?m)^\s*os\.arch\s*=\s*(\S+)\s*$') { return $false }
+    $JavaArchitecture = $Matches[1]
     $VcConfiguration = switch ($JavaArchitecture) {
         { $_ -in "amd64", "x86_64" } {
             "amd64", "Microsoft.VisualStudio.Component.VC.Tools.x86.x64"
@@ -59,13 +60,14 @@ function Import-VisualCppEnvironment {
 
     $ProgramFiles = ${env:ProgramFiles(x86)}
     if (-not $ProgramFiles) { $ProgramFiles = $env:ProgramFiles }
-    $VsWhere = Join-Path $ProgramFiles "Microsoft Visual Studio\Installer\vswhere.exe"
+    if (-not $ProgramFiles) { return $false }
+    $VsWhere = [IO.Path]::Combine(
+        $ProgramFiles, "Microsoft Visual Studio", "Installer", "vswhere.exe")
     if (-not (Test-Path $VsWhere)) { return $false }
-    $InstallationPath = & $VsWhere -latest -prerelease -products * -requires $VcComponent `
-        -property installationPath | Select-Object -First 1
-    if (-not $InstallationPath) { return $false }
-    $VsDevCmd = Join-Path $InstallationPath.Trim() "Common7\Tools\VsDevCmd.bat"
-    if (-not (Test-Path $VsDevCmd)) { return $false }
+    $VsDevCmd = & $VsWhere -latest -prerelease -products '*' -requires $VcComponent `
+        -find "Common7\Tools\VsDevCmd.bat" | Select-Object -First 1
+    if ($VsDevCmd) { $VsDevCmd = ([string] $VsDevCmd).Trim() }
+    if (-not $VsDevCmd -or -not (Test-Path $VsDevCmd)) { return $false }
 
     $EnvironmentLines = & $env:ComSpec /d /s /c `
         "call `"$VsDevCmd`" -no_logo -arch=$VcArchitecture -host_arch=amd64 >nul && set"
@@ -75,7 +77,7 @@ function Import-VisualCppEnvironment {
             [Environment]::SetEnvironmentVariable($Matches[1], $Matches[2], "Process")
         }
     }
-    Write-Host "MSVC-Umgebung geladen: $InstallationPath ($VcArchitecture)"
+    Write-Host "MSVC-Umgebung geladen: $VsDevCmd ($VcArchitecture)"
     return $true
 }
 
