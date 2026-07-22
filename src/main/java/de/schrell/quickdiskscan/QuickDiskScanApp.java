@@ -55,7 +55,6 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.SimpleFileVisitor;
 import java.nio.file.attribute.BasicFileAttributes;
-import java.text.NumberFormat;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
@@ -64,7 +63,8 @@ import java.util.concurrent.CancellationException;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.prefs.Preferences;
 
-import static de.schrell.quickdiskscan.I18n.numberLocale;
+import static de.schrell.quickdiskscan.I18n.decimal;
+import static de.schrell.quickdiskscan.I18n.number;
 import static de.schrell.quickdiskscan.I18n.text;
 
 public final class QuickDiskScanApp extends Application {
@@ -105,6 +105,7 @@ public final class QuickDiskScanApp extends Application {
     private final AtomicBoolean discoveringVolumes = new AtomicBoolean();
 
     private Stage stage;
+    private BorderPane root;
     private volatile DiskScanner scanner;
     private volatile Thread scanThread;
     private DiskScanner.ScanNode focusedNode;
@@ -113,6 +114,8 @@ public final class QuickDiskScanApp extends Application {
     private long lastDisplayedEntries = -1;
     private boolean busy;
     private boolean deleting;
+    private boolean tableConfigured;
+    private Runnable idleStatus = this::showReadyStatus;
 
     public QuickDiskScanApp() {}
 
@@ -128,7 +131,7 @@ public final class QuickDiskScanApp extends Application {
             // The packaged application still has its platform icon.
         }
 
-        BorderPane root = new BorderPane();
+        root = new BorderPane();
         root.getStyleClass().add("app-root");
         root.setPadding(new Insets(18));
         root.setTop(createHeader());
@@ -195,7 +198,8 @@ public final class QuickDiskScanApp extends Application {
         ToggleGroup sizeGroup = new ToggleGroup();
         logicalButton.setToggleGroup(sizeGroup);
         physicalButton.setToggleGroup(sizeGroup);
-        physicalButton.setSelected(true);
+        physicalButton.setSelected(sizeBasis == DiskScanner.SizeBasis.PHYSICAL);
+        logicalButton.setSelected(sizeBasis == DiskScanner.SizeBasis.LOGICAL);
         sizeGroup.selectedToggleProperty().addListener((observable, previous, selected) -> {
             if (selected == null) {
                 previous.setSelected(true);
@@ -215,8 +219,8 @@ public final class QuickDiskScanApp extends Application {
         languageBox.getItems().setAll(I18n.Language.values());
         languageBox.setValue(I18n.language());
         languageBox.setPrefWidth(110);
-        languageBox.setTooltip(new Tooltip(text("Sprache (Neustart erforderlich)",
-                "Language (restart required)")));
+        languageBox.setTooltip(new Tooltip(text("Sprache wird sofort angewendet",
+                "Language applies immediately")));
         languageBox.setOnAction(event -> saveLanguage());
         HBox options = new HBox(9, new Label(text("Parallelität", "Parallelism")), parallelSpinner,
                 new Label(text("Anzeige", "Display")), logicalButton, physicalButton,
@@ -279,8 +283,7 @@ public final class QuickDiskScanApp extends Application {
             protected void updateItem(Long bytes, boolean empty) {
                 super.updateItem(bytes, empty);
                 long total = focusedNode == null ? 0 : sizeBasis.bytes(focusedNode);
-                setText(empty || bytes == null || total == 0 ? "" : String.format(numberLocale(), "%.1f %%",
-                        bytes * 100.0 / total));
+                setText(empty || bytes == null || total == 0 ? "" : decimal(bytes * 100.0 / total, 1) + " %");
                 setAlignment(Pos.CENTER_RIGHT);
             }
         });
@@ -301,15 +304,18 @@ public final class QuickDiskScanApp extends Application {
         });
 
         table.getColumns().setAll(List.of(nameColumn, sizeColumn, shareColumn, statusColumn));
-        sortedNodes.comparatorProperty().bind(table.comparatorProperty());
+        if (!tableConfigured) {
+            sortedNodes.comparatorProperty().bind(table.comparatorProperty());
+            table.getSelectionModel().getSelectedItems().addListener(
+                    (javafx.collections.ListChangeListener<DiskScanner.ScanNode>) change -> updateActionButtons());
+            table.setRowFactory(ignored -> createRow());
+            tableConfigured = true;
+        }
         table.getSortOrder().setAll(List.of(sizeColumn));
         table.setColumnResizePolicy(TableView.CONSTRAINED_RESIZE_POLICY_FLEX_LAST_COLUMN);
         table.setPlaceholder(new Label(text("Scan starten, um die Belegung anzuzeigen",
                 "Start a scan to display disk usage")));
         table.getSelectionModel().setSelectionMode(SelectionMode.MULTIPLE);
-        table.getSelectionModel().getSelectedItems().addListener(
-                (javafx.collections.ListChangeListener<DiskScanner.ScanNode>) change -> updateActionButtons());
-        table.setRowFactory(ignored -> createRow());
     }
 
     private TableCell<DiskScanner.ScanNode, Long> byteCell() {
@@ -513,9 +519,10 @@ public final class QuickDiskScanApp extends Application {
         scanThread = null;
         refresh(true);
         progressBar.setProgress(1);
-        progressLabel.setText(text("Fertig · ", "Done · ") + number(result.snapshot().entries())
-                + text(" Einträge in ", " entries in ")
+        idleStatus = () -> progressLabel.setText(text("Fertig · ", "Done · ")
+                + number(result.snapshot().entries()) + text(" Einträge in ", " entries in ")
                 + formatDuration(result.snapshot().elapsedMillis()));
+        idleStatus.run();
         updateBusyState();
     }
 
@@ -526,7 +533,8 @@ public final class QuickDiskScanApp extends Application {
         busy = false;
         scanThread = null;
         refresh(true);
-        progressLabel.setText(text("Scan abgebrochen", "Scan cancelled"));
+        idleStatus = () -> progressLabel.setText(text("Scan abgebrochen", "Scan cancelled"));
+        idleStatus.run();
         updateBusyState();
     }
 
@@ -536,6 +544,8 @@ public final class QuickDiskScanApp extends Application {
         }
         busy = false;
         scanThread = null;
+        idleStatus = () -> progressLabel.setText(text("Scan fehlgeschlagen", "Scan failed"));
+        idleStatus.run();
         updateBusyState();
         showError(text("Scan fehlgeschlagen", "Scan failed"), exception.getMessage() == null
                 ? exception.getClass().getSimpleName() : exception.getMessage());
@@ -708,7 +718,9 @@ public final class QuickDiskScanApp extends Application {
         deleting = false;
         lastDisplayedEntries = -1;
         refresh(true);
-        progressLabel.setText(number(deleted.size()) + text(" Einträge gelöscht", " items deleted"));
+        idleStatus = () -> progressLabel.setText(number(deleted.size())
+                + text(" Einträge gelöscht", " items deleted"));
+        idleStatus.run();
         updateBusyState();
         if (!failures.isEmpty()) {
             showError(text("Nicht alles konnte gelöscht werden", "Not everything could be deleted"),
@@ -772,13 +784,38 @@ public final class QuickDiskScanApp extends Application {
             return;
         }
         I18n.saveLanguage(language);
-        Alert alert = new Alert(Alert.AlertType.INFORMATION,
-                I18n.text(language, "Zahlen übernehmen die Sprache sofort; übrige Texte beim nächsten Start.",
-                        "Numbers apply immediately; remaining text applies the next time the app starts."), ButtonType.OK);
-        alert.initOwner(stage);
-        alert.setTitle(I18n.text(language, "Sprache gespeichert", "Language saved"));
-        alert.setHeaderText(alert.getTitle());
-        alert.showAndWait();
+        applyLanguage();
+    }
+
+    private void applyLanguage() {
+        chooseButton.setText(text("Auswählen …", "Choose …"));
+        logicalButton.setText(text("Virtuelle Größe", "Logical size"));
+        physicalButton.setText(text("Belegte Blöcke", "Allocated blocks"));
+        scanButton.setText(text("Scannen", "Scan"));
+        cancelButton.setText(text("Abbrechen", "Cancel"));
+        revealButton.setText(text("Im Dateimanager zeigen", "Reveal in file manager"));
+        deleteButton.setText(text("Löschen …", "Delete …"));
+        sizeColumn.setText(sizeBasis == DiskScanner.SizeBasis.LOGICAL
+                ? text("Logisch", "Logical") : text("Physisch", "Physical"));
+        shareColumn.setText(text("Anteil", "Share"));
+        root.setTop(null);
+        root.setCenter(null);
+        root.setBottom(null);
+        root.setTop(createHeader());
+        root.setCenter(createContent());
+        root.setBottom(createFooter());
+        if (volumeBox.getValue() != null) {
+            updateVolumeUsage(volumeBox.getValue());
+        }
+        refresh(true);
+        if (!busy && !deleting) {
+            idleStatus.run();
+        }
+    }
+
+    private void showReadyStatus() {
+        progressLabel.setText(text("Bereit", "Ready"));
+        statisticsLabel.setText(text("Noch kein Scan ausgeführt.", "No scan has run yet."));
     }
 
     private static String status(DiskScanner.ScanNode node) {
@@ -803,10 +840,6 @@ public final class QuickDiskScanApp extends Application {
         return column;
     }
 
-    private static String number(long value) {
-        return NumberFormat.getIntegerInstance(numberLocale()).format(value);
-    }
-
     private static Region spacer() {
         Region spacer = new Region();
         HBox.setHgrow(spacer, Priority.ALWAYS);
@@ -815,7 +848,7 @@ public final class QuickDiskScanApp extends Application {
 
     private static String formatDuration(long millis) {
         long seconds = millis / 1_000;
-        return seconds < 60 ? String.format(numberLocale(), "%.1f s", millis / 1_000.0)
+        return seconds < 60 ? decimal(millis / 1_000.0, 1) + " s"
                 : number(seconds / 60) + " min " + number(seconds % 60) + " s";
     }
 

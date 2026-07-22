@@ -1,8 +1,7 @@
 package de.schrell.quickdiskscan;
 
-import java.text.NumberFormat;
-
-import static de.schrell.quickdiskscan.I18n.numberLocale;
+import static de.schrell.quickdiskscan.I18n.decimal;
+import static de.schrell.quickdiskscan.I18n.number;
 
 final class ByteFormat {
     private static final String[] UNITS = {"B", "KB", "MB", "GB", "TB", "PB"};
@@ -19,8 +18,8 @@ final class ByteFormat {
             value /= 1_000;
             unit++;
         }
-        return String.format(numberLocale(), value >= 100 ? "%.0f %s" : value >= 10 ? "%.1f %s" : "%.2f %s",
-                value, UNITS[unit]);
+        int fractionDigits = value >= 100 ? 0 : value >= 10 ? 1 : 2;
+        return decimal(value, fractionDigits) + " " + UNITS[unit];
     }
 
     static String rate(long entries, long elapsedMillis) {
@@ -30,7 +29,4 @@ final class ByteFormat {
         return number(entries * 1_000L / elapsedMillis) + "/s";
     }
 
-    private static String number(long value) {
-        return NumberFormat.getIntegerInstance(numberLocale()).format(value);
-    }
 }

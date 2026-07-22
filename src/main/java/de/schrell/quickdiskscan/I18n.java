@@ -6,15 +6,17 @@ import java.util.prefs.Preferences;
 
 final class I18n {
     enum Language {
-        GERMAN("Deutsch", Locale.GERMANY),
-        ENGLISH("English", Locale.US);
+        GERMAN("Deutsch", '.', ','),
+        ENGLISH("English", ',', '.');
 
         private final String label;
-        private final Locale numberLocale;
+        private final char groupingSeparator;
+        private final char decimalSeparator;
 
-        Language(String label, Locale numberLocale) {
+        Language(String label, char groupingSeparator, char decimalSeparator) {
             this.label = label;
-            this.numberLocale = numberLocale;
+            this.groupingSeparator = groupingSeparator;
+            this.decimalSeparator = decimalSeparator;
         }
 
         @Override
@@ -32,10 +34,6 @@ final class I18n {
 
     static String text(String german, String english) {
         return text(language, german, english);
-    }
-
-    static Locale numberLocale() {
-        return numberLocale(language);
     }
 
     static Language language() {
@@ -56,8 +54,29 @@ final class I18n {
         return language == Language.GERMAN ? german : english;
     }
 
-    static Locale numberLocale(Language language) {
-        return language.numberLocale;
+    static String number(long value) {
+        return number(language, value);
+    }
+
+    static String number(Language language, long value) {
+        String digits = Long.toString(value);
+        int start = digits.startsWith("-") ? 1 : 0;
+        StringBuilder formatted = new StringBuilder(digits.length() + (digits.length() - start - 1) / 3);
+        if (start == 1) {
+            formatted.append('-');
+        }
+        for (int index = start; index < digits.length(); index++) {
+            if (index > start && (digits.length() - index) % 3 == 0) {
+                formatted.append(language.groupingSeparator);
+            }
+            formatted.append(digits.charAt(index));
+        }
+        return formatted.toString();
+    }
+
+    static String decimal(double value, int fractionDigits) {
+        return String.format(Locale.ROOT, "%." + fractionDigits + "f", value)
+                .replace('.', language.decimalSeparator);
     }
 
     private static Language language(String value) {
